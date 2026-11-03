@@ -1,18 +1,34 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { animate, motion, useInView, useMotionValue, useReducedMotion, useSpring, useTransform } from "motion/react";
 
 export const ease = [0.22, 1, 0.36, 1];
 
+/* "Lite" mode: phones, tablets and other touch-first devices get lighter effects. */
+const LITE_QUERY = "(max-width: 760px), (hover: none), (pointer: coarse)";
+const subscribeLite = (cb) => {
+  const mq = window.matchMedia(LITE_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+};
+export const isLite = () => typeof window !== "undefined" && window.matchMedia(LITE_QUERY).matches;
+export function useLite() {
+  return useSyncExternalStore(subscribeLite, isLite, () => false);
+}
+
 /* Fade + rise + un-blur when scrolled into view. */
 export function Reveal({ children, delay = 0, y = 40, className, as = "div", ...rest }) {
   const Tag = motion[as];
+  const lite = useLite();
+  // Blur filters are expensive on phones, so lite mode only fades and rises a little.
+  const hidden = lite ? { opacity: 0, y: Math.min(y, 20) } : { opacity: 0, y, filter: "blur(8px)" };
+  const shown = lite ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, filter: "blur(0px)" };
   return (
     <Tag
       className={className}
-      initial={{ opacity: 0, y, filter: "blur(8px)" }}
-      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      initial={hidden}
+      whileInView={shown}
       viewport={{ once: true, margin: "0px 0px -10% 0px" }}
-      transition={{ duration: 0.9, ease, delay }}
+      transition={{ duration: lite ? 0.6 : 0.9, ease, delay: lite ? Math.min(delay, 0.15) : delay }}
       {...rest}
     >
       {children}
@@ -20,8 +36,22 @@ export function Reveal({ children, delay = 0, y = 40, className, as = "div", ...
   );
 }
 
-/* Card that tilts in 3D toward the pointer, with a glare that follows it. */
-export function Tilt({ children, max = 12, className, style, glare = true, ...rest }) {
+/* Card that tilts in 3D toward the pointer, with a glare that follows it.
+   On lite devices it is a plain element: no springs, no pointer tracking. */
+export function Tilt(props) {
+  const lite = useLite();
+  if (lite) {
+    const { children, className, style, max, glare, ...rest } = props;
+    return (
+      <div className={`tilt ${className ?? ""}`} style={style} {...rest}>
+        {children}
+      </div>
+    );
+  }
+  return <TiltMotion {...props} />;
+}
+
+function TiltMotion({ children, max = 12, className, style, glare = true, ...rest }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const px = useMotionValue(0.5);
@@ -59,7 +89,21 @@ export function Tilt({ children, max = 12, className, style, glare = true, ...re
 }
 
 /* Element that is pulled toward the cursor. */
-export function Magnetic({ children, strength = 0.3, className, as = "a", ...rest }) {
+export function Magnetic(props) {
+  const lite = useLite();
+  if (lite) {
+    const { children, strength, as = "a", ...rest } = props;
+    const Tag = motion[as];
+    return (
+      <Tag whileTap={{ scale: 0.96 }} {...rest}>
+        {children}
+      </Tag>
+    );
+  }
+  return <MagneticMotion {...props} />;
+}
+
+function MagneticMotion({ children, strength = 0.3, className, as = "a", ...rest }) {
   const Tag = motion[as];
   const ref = useRef(null);
   const x = useSpring(0, { stiffness: 220, damping: 15 });
@@ -112,6 +156,19 @@ export function Counter({ value, decimals = 0, suffix = "", delay = 0 }) {
 
 /* Letters fly in one by one with a 3D flip. Words never break mid-letter. */
 export function SplitText({ text, className, delay = 0, stagger = 0.04 }) {
+  const lite = useLite();
+  if (lite) {
+    return (
+      <motion.span
+        className={`${className ?? ""} word char`}
+        initial={{ y: "100%", opacity: 0 }}
+        animate={{ y: "0%", opacity: 1 }}
+        transition={{ duration: 0.7, ease, delay }}
+      >
+        {text}
+      </motion.span>
+    );
+  }
   let n = 0;
   const words = text.split(" ");
   return (

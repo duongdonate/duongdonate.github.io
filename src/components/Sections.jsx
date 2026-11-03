@@ -11,10 +11,36 @@ import {
   wrap,
 } from "motion/react";
 import { ELEMENTS, about, banner, byKey, profile, projects, skills } from "../data.js";
-import { Counter, Magnetic, Reveal, SectionHead, Tilt, ease } from "./ui.jsx";
+import { Counter, Magnetic, Reveal, SectionHead, Tilt, ease, useLite } from "./ui.jsx";
 
 /* ---------------- Banner: marquee that reacts to scroll speed ---------------- */
+function BannerItems() {
+  const row = [...banner, ...banner];
+  return [...row, ...row].map((t, i) => (
+    <span key={i} className="banner__item">
+      {t}
+      <svg viewBox="-50 -50 100 100" width="18" height="18">
+        <path d="M0-46 9-9 46 0 9 9 0 46-9 9-46 0-9-9Z" fill="currentColor" />
+      </svg>
+    </span>
+  ));
+}
+
 export function Banner() {
+  const lite = useLite();
+  // Lite: a constant CSS loop instead of a per-frame, scroll-velocity driven one.
+  if (lite)
+    return (
+      <div className="banner" aria-hidden="true">
+        <div className="banner__track banner__track--css">
+          <BannerItems />
+        </div>
+      </div>
+    );
+  return <BannerMotion />;
+}
+
+function BannerMotion() {
   const base = useMotionValue(0);
   const { scrollY } = useScroll();
   const velocity = useSpring(useVelocity(scrollY), { damping: 50, stiffness: 400 });
@@ -31,18 +57,10 @@ export function Banner() {
     base.set(base.get() + move);
   });
 
-  const row = [...banner, ...banner];
   return (
     <div className="banner" aria-hidden="true">
       <motion.div className="banner__track" style={{ x }}>
-        {[...row, ...row].map((t, i) => (
-          <span key={i} className="banner__item">
-            {t}
-            <svg viewBox="-50 -50 100 100" width="18" height="18">
-              <path d="M0-46 9-9 46 0 9 9 0 46-9 9-46 0-9-9Z" fill="currentColor" />
-            </svg>
-          </span>
-        ))}
+        <BannerItems />
       </motion.div>
     </div>
   );
@@ -204,7 +222,7 @@ function ProjectVisual({ id }) {
   );
 }
 
-function ProjectCard({ p, i, total, progress }) {
+function ProjectCard({ p, i, total, progress, lite }) {
   const el = byKey(p.element);
   const start = i / total;
   const scale = useTransform(progress, [start, 1], [1, 1 - (total - i - 1) * 0.05]);
@@ -216,11 +234,11 @@ function ProjectCard({ p, i, total, progress }) {
     <div className="project-wrap" style={{ top: `calc(90px + ${i * 26}px)` }}>
       <motion.article
         className="project"
-        style={{ scale, rotateX, filter, "--c": el.color, "--cg": el.glow }}
-        initial={{ opacity: 0, y: 120 }}
+        style={lite ? { "--c": el.color, "--cg": el.glow } : { scale, rotateX, filter, "--c": el.color, "--cg": el.glow }}
+        initial={{ opacity: 0, y: lite ? 40 : 120 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-10% 0px" }}
-        transition={{ duration: 1, ease }}
+        transition={{ duration: lite ? 0.6 : 1, ease }}
       >
         <div className="project__visual">
           <ProjectVisual id={p.id} />
@@ -270,6 +288,7 @@ function ProjectCard({ p, i, total, progress }) {
 }
 
 export function Projects() {
+  const lite = useLite();
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   return (
@@ -278,7 +297,7 @@ export function Projects() {
         <SectionHead num="03" kanji="任" title="Missions" sub="Projects" />
         <div className="projects" ref={ref}>
           {projects.map((p, i) => (
-            <ProjectCard key={p.id} p={p} i={i} total={projects.length} progress={scrollYProgress} />
+            <ProjectCard key={p.id} p={p} i={i} total={projects.length} progress={scrollYProgress} lite={lite} />
           ))}
         </div>
       </div>

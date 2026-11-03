@@ -1483,6 +1483,104 @@ ul {
   color: var(--gold);
 }
 
+/* ================= Lite star (mobile hero) ================= */
+.lite-star {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.lite-star__glow {
+  position: absolute;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--el) 38%, transparent), transparent 65%);
+}
+.lite-star__svg {
+  position: relative;
+  width: min(62%, 260px);
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.5));
+  animation: spin 9s linear infinite;
+}
+.lite-star__orbit {
+  position: absolute;
+  width: min(86%, 340px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--el) 35%, transparent);
+  animation: spin 18s linear infinite reverse;
+}
+.lite-star__orbit span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 10px var(--c);
+}
+.lite-star__orbit span:nth-child(1) { transform: rotate(0deg) translateX(min(43vw, 170px)); }
+.lite-star__orbit span:nth-child(2) { transform: rotate(72deg) translateX(min(43vw, 170px)); }
+.lite-star__orbit span:nth-child(3) { transform: rotate(144deg) translateX(min(43vw, 170px)); }
+.lite-star__orbit span:nth-child(4) { transform: rotate(216deg) translateX(min(43vw, 170px)); }
+.lite-star__orbit span:nth-child(5) { transform: rotate(288deg) translateX(min(43vw, 170px)); }
+
+.banner__track--css {
+  animation: bannerLoop 40s linear infinite;
+}
+@keyframes bannerLoop {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ================= Lite mode: phones & touch devices =================
+   Matches useLite() in ui.jsx. Drops the costly effects: big blurs,
+   backdrop blur, noise overlay and always-running background loops. */
+@media (max-width: 760px), (hover: none), (pointer: coarse) {
+  .bg__glow {
+    filter: blur(60px);
+    animation: none;
+  }
+  .bg__noise {
+    display: none;
+  }
+  .header.is-scrolled,
+  .nav,
+  .avatar-card.tilt,
+  .btn--ghost,
+  .ticket,
+  .bubble {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .header.is-scrolled {
+    background: rgba(8, 7, 13, 0.94);
+  }
+  .avatar-card.tilt {
+    background: linear-gradient(160deg, #1f1c2a, #14121c);
+  }
+  .stat__ring,
+  .hero__title .line--accent .char {
+    animation: none;
+  }
+  .project {
+    box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.8);
+  }
+  .skill {
+    box-shadow: none;
+  }
+  .tilt__glare {
+    display: none;
+  }
+  .btn--primary::before {
+    display: none;
+  }
+}
+
 /* ================= Responsive ================= */
 @media (max-width: 960px) {
   .hero__inner,

@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { profile } from "../data.js";
-import { Magnetic, SplitText, Tilt, Typed, ease } from "./ui.jsx";
+import { Magnetic, SplitText, Tilt, Typed, ease, useLite } from "./ui.jsx";
 
 const Scene3D = lazy(() => import("./Scene3D.jsx"));
 
@@ -14,10 +14,41 @@ function canUseWebGL() {
   }
 }
 
+/* Lightweight stand-in for the 3D scene: one SVG star spun by CSS. */
+function LiteStar() {
+  return (
+    <div className="lite-star" aria-hidden="true">
+      <div className="lite-star__glow" />
+      <div className="lite-star__orbit">
+        <span style={{ "--c": "#3ee37a" }} />
+        <span style={{ "--c": "#ff4d2e" }} />
+        <span style={{ "--c": "#2f8bff" }} />
+        <span style={{ "--c": "#c08a4a" }} />
+        <span style={{ "--c": "#8fe3ff" }} />
+      </div>
+      <svg className="lite-star__svg" viewBox="-50 -50 100 100">
+        <defs>
+          <linearGradient id="liteGold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#ffe9a8" />
+            <stop offset="0.55" stopColor="#f5c04a" />
+            <stop offset="1" stopColor="#a8710f" />
+          </linearGradient>
+        </defs>
+        <path d="M0-46 9-9 46 0 9 9 0 46-9 9-46 0-9-9Z" fill="url(#liteGold)" />
+        <circle r="9" fill="none" stroke="var(--el)" strokeWidth="3.5" />
+        <circle r="5" fill="var(--bg)" />
+      </svg>
+    </div>
+  );
+}
+
 export default function Hero({ element, ready }) {
   const ref = useRef(null);
+  const lite = useLite();
   const [webgl, setWebgl] = useState(false);
   useEffect(() => setWebgl(canUseWebGL()), []);
+  // Phones never download or run the WebGL scene.
+  const show3D = webgl && !lite;
 
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const yText = useTransform(scrollYProgress, [0, 1], ["0%", "35%"]);
@@ -25,20 +56,27 @@ export default function Hero({ element, ready }) {
   const fade = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
   const kanjiY = useTransform(scrollYProgress, [0, 1], ["0%", "60%"]);
 
-  const item = (d) => ({
-    initial: { opacity: 0, y: 30, filter: "blur(8px)" },
-    animate: ready ? { opacity: 1, y: 0, filter: "blur(0px)" } : {},
-    transition: { duration: 0.9, ease, delay: d },
-  });
+  const item = (d) =>
+    lite
+      ? {
+          initial: { opacity: 0, y: 16 },
+          animate: ready ? { opacity: 1, y: 0 } : {},
+          transition: { duration: 0.6, ease, delay: d * 0.6 },
+        }
+      : {
+          initial: { opacity: 0, y: 30, filter: "blur(8px)" },
+          animate: ready ? { opacity: 1, y: 0, filter: "blur(0px)" } : {},
+          transition: { duration: 0.9, ease, delay: d },
+        };
 
   return (
     <section className="hero" id="home" ref={ref}>
-      <motion.div className="hero__kanji" style={{ y: kanjiY, color: "var(--el)" }} aria-hidden="true">
+      <motion.div className="hero__kanji" style={lite ? { color: "var(--el)" } : { y: kanjiY, color: "var(--el)" }} aria-hidden="true">
         {element.kanji}
       </motion.div>
 
       <div className="container hero__inner">
-        <motion.div className="hero__content" style={{ y: yText, opacity: fade }}>
+        <motion.div className="hero__content" style={lite ? undefined : { y: yText, opacity: fade }}>
           <motion.p className="eyebrow" {...item(0.1)}>
             <span className="pulse-dot" /> Ready for the next mission · Full-stack / MERN
           </motion.p>
@@ -101,18 +139,18 @@ export default function Hero({ element, ready }) {
 
         <motion.div
           className="hero__visual"
-          style={{ y: yScene }}
-          initial={{ opacity: 0, scale: 0.85 }}
+          style={lite ? undefined : { y: yScene }}
+          initial={{ opacity: 0, scale: lite ? 1 : 0.85 }}
           animate={ready ? { opacity: 1, scale: 1 } : {}}
           transition={{ duration: 1.2, ease, delay: 0.3 }}
         >
           <div className="hero__scene">
-            {webgl ? (
+            {show3D ? (
               <Suspense fallback={<div className="scene-fallback" />}>
                 <Scene3D element={element} />
               </Suspense>
             ) : (
-              <div className="scene-fallback" />
+              <LiteStar />
             )}
           </div>
 
@@ -128,7 +166,7 @@ export default function Hero({ element, ready }) {
               </div>
             </div>
           </Tilt>
-          <p className="hero__hint">Hover the star · click to throw</p>
+          {show3D && <p className="hero__hint">Hover the star · click to throw</p>}
         </motion.div>
       </div>
 

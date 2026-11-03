@@ -3,7 +3,7 @@ import { AnimatePresence, MotionConfig, motion, useMotionValueEvent, useScroll, 
 import { ELEMENTS, byKey } from "./data.js";
 import Hero from "./components/Hero.jsx";
 import { About, Banner, Contact, Footer, Projects, Skills } from "./components/Sections.jsx";
-import { ease } from "./components/ui.jsx";
+import { ease, isLite } from "./components/ui.jsx";
 
 const NAV = [
   { id: "about", label: "Dojo" },
@@ -183,7 +183,7 @@ export default function App() {
   }, [element]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 1500);
+    const t = setTimeout(() => setLoading(false), isLite() ? 900 : 1500);
     return () => clearTimeout(t);
   }, []);
   useEffect(() => {
